@@ -12,7 +12,17 @@ const User = require('../models/User');
  * Participants only need sessionId + nickname.
  */
 const socketAuthMiddleware = async (socket, next) => {
-  const { sessionId, role, nickname, token } = socket.handshake.auth;
+  const { sessionId, role, nickname, token: authToken } = socket.handshake.auth;
+  
+  // Get token from cookie or fallback to auth payload
+  let token = authToken;
+  if (socket.handshake.headers.cookie) {
+    const cookies = socket.handshake.headers.cookie.split(';').reduce((res, c) => {
+      const [key, val] = c.trim().split('=');
+      return { ...res, [key]: decodeURIComponent(val) };
+    }, {});
+    if (cookies.token) token = cookies.token;
+  }
 
   if (!sessionId) {
     return next(new Error('AUTH_ERROR: sessionId is required'));

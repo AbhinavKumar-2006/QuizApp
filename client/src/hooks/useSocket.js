@@ -12,7 +12,8 @@ export const useSocket = ({ sessionId, role, nickname, token, enabled = true }) 
     if (!sessionId || !enabled) return
 
     const socket = io(SOCKET_URL, {
-      auth: { sessionId, role, nickname, token },
+      auth: { sessionId, role, nickname }, // Backend now strictly reads from cookies!
+      withCredentials: true,
       reconnection: true,
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,

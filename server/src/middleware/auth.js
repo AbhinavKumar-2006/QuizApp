@@ -2,16 +2,21 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 
 /**
- * protect — requires a valid Bearer JWT in Authorization header.
+ * protect — requires a valid JWT in the token cookie.
  * Attaches req.user on success.
  */
 const protect = async (req, res, next) => {
-  const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    return res.status(401).json({ message: 'Authentication required' });
+  // Support both cookie and Bearer token for flexibility during transition
+  let token;
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  } else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
   }
 
-  const token = authHeader.split(' ')[1];
+  if (!token) {
+    return res.status(401).json({ message: 'Authentication required' });
+  }
 
   let decoded;
   try {

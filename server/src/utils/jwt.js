@@ -7,7 +7,17 @@ const signToken = (userId) =>
 
 const sendTokenResponse = (user, statusCode, res) => {
   const token = signToken(user._id);
-  res.status(statusCode).json({ success: true, token, user });
+
+  const options = {
+    expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    httpOnly: true, 
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax', 
+  };
+  res
+    .status(statusCode)
+    .cookie('token', token, options)
+    .json({ success: true, user }); 
 };
 
 module.exports = { signToken, sendTokenResponse };

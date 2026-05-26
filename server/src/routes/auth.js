@@ -6,6 +6,7 @@ const { validateRegister, validateLogin } = require('../validators');
 const {
   register,
   login,
+  logout,
   getMe,
   updateMe,
   changePassword,
@@ -14,6 +15,7 @@ const {
 // Public
 router.post('/register', validateRegister, register);
 router.post('/login', validateLogin, login);
+router.post('/logout', logout);
 
 // Protected
 router.use(protect);
