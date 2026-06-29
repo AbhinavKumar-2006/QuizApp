@@ -9,16 +9,17 @@ export const useCountdown = (initialSeconds, onExpire) => {
 
   const clear = () => { clearInterval(intervalRef.current); intervalRef.current = null }
 
-  const start = useCallback((seconds) => {
+  const start = useCallback((seconds, remainingSeconds) => {
     clear()
     const total = seconds ?? initialSeconds
-    setTimeLeft(total)
+    const remaining = remainingSeconds ?? total
+    setTimeLeft(remaining)
     setIsRunning(true)
-    const end = Date.now() + total * 1000
+    const end = Date.now() + remaining * 1000
     intervalRef.current = setInterval(() => {
-      const remaining = Math.max(0, Math.round((end - Date.now()) / 1000))
-      setTimeLeft(remaining)
-      if (remaining <= 0) {
+      const rem = Math.max(0, Math.round((end - Date.now()) / 1000))
+      setTimeLeft(rem)
+      if (rem <= 0) {
         clear()
         setIsRunning(false)
         onExpireRef.current?.()

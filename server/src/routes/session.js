@@ -23,13 +23,11 @@ router.get('/:sessionId/leaderboard', getLeaderboard);
 // ── Host-only routes ──────────────────────────────────────────────
 router.use(protect);
 
-router.route('/')
-  .get(getMySessions)
-  .post(validateCreateSession, createSession);
+router.get('/', getMySessions);
+router.post('/', validateCreateSession, createSession);
 
-router.route('/:sessionId')
-  .get(getSession)
-  .delete(deleteSession);
+router.get('/:sessionId', getSession);
+router.delete('/:sessionId', deleteSession);
 
 router.get('/:sessionId/results', getSessionResults);
 

@@ -73,7 +73,7 @@ export default function PlaySession() {
   useEffect(() => {
     const unsubs = [
       on('connect', () => {
-        emit('participant:join', { nickname })
+        emit('participant:join')
       }),
 
       on('participant:joined', ({ participant }) => {
@@ -88,7 +88,7 @@ export default function PlaySession() {
         setQTotal(totalQuestions)
       }),
 
-      on('session:question', ({ question, index, total, timeLimit: tl }) => {
+      on('session:question', ({ question, index, total, timeLimit: tl, questionStartedAt }) => {
         setQuestion(question)
         setQIndex(index)
         setQTotal(total)
@@ -98,10 +98,18 @@ export default function PlaySession() {
         setRevealData(null)
         setPhase(PHASE.QUESTION)
         qStartTime.current = Date.now()
-        start(tl)
+        if (questionStartedAt) {
+          const elapsed = (Date.now() - new Date(questionStartedAt).getTime()) / 1000
+          const remaining = Math.max(0, tl - elapsed)
+          start(tl, remaining)
+        } else {
+          start(tl)
+        }
       }),
 
-      on('participant:answer_result', ({ isCorrect, score }) => {
+      on('participant:answer_result', ({ isCorrect, score, previouslySelected }) => {
+        if (previouslySelected) setSelected(previouslySelected)
+        setPhase(PHASE.ANSWERED)
         setAnswerResult({ isCorrect, score })
         setMyScore(s => s + score)
         stop()
@@ -246,22 +254,17 @@ export default function PlaySession() {
         {/* Feedback after answering */}
         {phase === PHASE.ANSWERED && (
           <div className="mt-4 animate-slide-up">
-            {answerResult ? (
-              <div className={`rounded-2xl p-5 text-center ${answerResult.isCorrect ? 'bg-green-50 border-2 border-green-300' : 'bg-red-50 border-2 border-red-300'}`}>
-                <p className="text-3xl mb-1">{answerResult.isCorrect ? '✅' : '❌'}</p>
-                <p className={`font-bold text-lg ${answerResult.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
-                  {answerResult.isCorrect ? 'Correct!' : 'Wrong!'}
-                </p>
-                {answerResult.isCorrect && (
-                  <p className="text-green-600 text-sm font-medium mt-1">+{answerResult.score.toLocaleString()} pts</p>
-                )}
-                <p className="text-gray-400 text-sm mt-2 animate-pulse">Waiting for host…</p>
+            {selected ? (
+              <div className="bg-blue-50 border-2 border-blue-200 rounded-2xl p-5 text-center">
+                <p className="text-3xl mb-1">👍</p>
+                <p className="font-bold text-blue-700">Answer submitted!</p>
+                <p className="text-blue-500 text-sm mt-2 animate-pulse">Waiting for host…</p>
               </div>
             ) : (
               <div className="bg-amber-50 border-2 border-amber-200 rounded-2xl p-5 text-center">
                 <p className="text-3xl mb-1">⏰</p>
                 <p className="font-bold text-amber-700">Time's up!</p>
-                <p className="text-gray-400 text-sm mt-2 animate-pulse">Waiting for host…</p>
+                <p className="text-amber-500 text-sm mt-2 animate-pulse">Waiting for host…</p>
               </div>
             )}
           </div>
@@ -270,6 +273,17 @@ export default function PlaySession() {
         {/* Reveal phase leaderboard snippet */}
         {phase === PHASE.REVEAL && (
           <div className="mt-4 animate-slide-up">
+            {answerResult && (
+              <div className={`rounded-2xl p-5 text-center mb-4 ${answerResult.isCorrect ? 'bg-green-50 border-2 border-green-300' : 'bg-red-50 border-2 border-red-300'}`}>
+                <p className="text-3xl mb-1">{answerResult.isCorrect ? '✅' : '❌'}</p>
+                <p className={`font-bold text-lg ${answerResult.isCorrect ? 'text-green-700' : 'text-red-700'}`}>
+                  {answerResult.isCorrect ? 'Correct!' : 'Wrong!'}
+                </p>
+                {answerResult.isCorrect && (
+                  <p className="text-green-600 text-sm font-medium mt-1">+{answerResult.score.toLocaleString()} pts</p>
+                )}
+              </div>
+            )}
             <div className="bg-white rounded-2xl shadow-card p-4">
               <Leaderboard entries={leaderboard.slice(0, 5)} highlightNickname={nickname} title="Leaderboard" />
               {myRank && myRank > 5 && (

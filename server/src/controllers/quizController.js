@@ -38,7 +38,7 @@ const createQuiz = async (req, res) => {
  * Returns quiz details + all its questions.
  */
 const getQuiz = async (req, res) => {
-  const quiz = await Quiz.findOne({ _id: req.params.quizId, creatorId: req.user._id });
+  const quiz = await Quiz.findOne({ _id: req.params.quizId, creatorId: req.user._id });//return quiz only if it belongs to logged in user
   if (!quiz) throw new AppError('Quiz not found', 404);
 
   const questions = await Question.find({ quizId: quiz._id }).sort({ order: 1 });
@@ -56,6 +56,8 @@ const updateQuiz = async (req, res) => {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   });
 
+    //Why not just use _id?
+    //Then any authenticated user could update any quiz if they know the ID.
   const quiz = await Quiz.findOneAndUpdate(
     { _id: req.params.quizId, creatorId: req.user._id },
     updates,

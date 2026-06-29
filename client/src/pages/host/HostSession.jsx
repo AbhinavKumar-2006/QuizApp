@@ -41,11 +41,27 @@ export default function HostSession() {
         setSession(data.session)
         setParticipants(data.participants)
         if (data.session.status === 'ended') setPhase(PHASE.ENDED)
-        if (data.session.status === 'active') setPhase(PHASE.QUESTION)
+        if (data.session.status === 'active') {
+          if (data.activeState) {
+            const { question, index, total, timeLimit: tl, questionStartedAt, answerCount: ac } = data.activeState
+            setCurrentQ(question)
+            setQIndex(index)
+            setQTotal(total)
+            setTimeLimit(tl)
+            setAnswerCount(ac)
+            setRevealData(null)
+            setPhase(PHASE.QUESTION)
+            const elapsed = questionStartedAt ? (Date.now() - new Date(questionStartedAt).getTime()) / 1000 : 0
+            const remaining = Math.max(0, tl - elapsed)
+            start(tl, remaining)
+          } else {
+            setPhase(PHASE.QUESTION)
+          }
+        }
       })
       .catch(() => { toast.error('Session not found'); navigate('/sessions') })
       .finally(() => setLoading(false))
-  }, [sessionId])
+  }, [sessionId, start])
 
   // Socket listeners
   useEffect(() => {

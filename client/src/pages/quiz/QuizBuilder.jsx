@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { quizApi, questionApi, sessionApi } from '../../api/services'
 import { AppLayout } from '../../components/layout/AppLayout'
@@ -10,7 +10,7 @@ import toast from 'react-hot-toast'
 
 const EMPTY_OPTION = (order) => ({ text: '', isCorrect: false, order })
 const EMPTY_QUESTION = () => ({
-  text: '', type: 'mcq', points: 1000, timeLimit: null,
+  text: '', type: 'mcq', points: 1000, timeLimit: null, imageUrl: null,
   options: [EMPTY_OPTION(0), EMPTY_OPTION(1), EMPTY_OPTION(2), EMPTY_OPTION(3)]
 })
 
@@ -43,6 +43,7 @@ const OptionInput = ({ opt, idx, type, onChange, onToggleCorrect }) => {
 const QuestionEditor = ({ question, onSave, onClose, quizId, loading }) => {
   const [q, setQ] = useState(() => question || EMPTY_QUESTION())
   const isEdit = !!question
+  const cachedOptions = useRef(null)
 
   const setField = (key, val) => setQ(prev => ({ ...prev, [key]: val }))
   const setOption = (idx, key, val) => setQ(prev => {
@@ -60,11 +61,13 @@ const QuestionEditor = ({ question, onSave, onClose, quizId, loading }) => {
   }
 
   const handleTypeChange = (type) => {
+    if (type === q.type) return
     let opts = q.options
     if (type === 'true_false') {
+      if (q.type !== 'true_false') cachedOptions.current = q.options
       opts = [{ text: 'True', isCorrect: true, order: 0 }, { text: 'False', isCorrect: false, order: 1 }]
     } else if (q.type === 'true_false') {
-      opts = [EMPTY_OPTION(0), EMPTY_OPTION(1), EMPTY_OPTION(2), EMPTY_OPTION(3)]
+      opts = cachedOptions.current || [EMPTY_OPTION(0), EMPTY_OPTION(1), EMPTY_OPTION(2), EMPTY_OPTION(3)]
     }
     setQ(prev => ({ ...prev, type, options: opts }))
   }
@@ -128,6 +131,20 @@ const QuestionEditor = ({ question, onSave, onClose, quizId, loading }) => {
           <input className="input" type="number" min={0} max={10000} step={100}
             value={q.points} onChange={e => setField('points', parseInt(e.target.value) || 0)} />
         </div>
+      </div>
+
+      {/* Image URL */}
+      <div>
+        <label className="label">Image URL (optional)</label>
+        <input className="input" type="url" placeholder="https://example.com/image.png"
+          value={q.imageUrl || ''} onChange={e => setField('imageUrl', e.target.value)} />
+        {q.imageUrl && (
+          <div className="mt-2 rounded-xl overflow-hidden border border-gray-200 bg-gray-50 flex justify-center max-h-40">
+            <img src={q.imageUrl} alt="Question preview" className="object-contain" 
+                 onError={(e) => e.target.style.display = 'none'} 
+                 onLoad={(e) => e.target.style.display = 'block'} />
+          </div>
+        )}
       </div>
 
       <div className="flex gap-3 justify-end pt-2">

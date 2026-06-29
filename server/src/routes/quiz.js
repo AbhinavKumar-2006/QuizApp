@@ -30,14 +30,12 @@ const {
 router.use(protect);
 
 // ── Quiz CRUD ──────────────────────────────────────────────────────
-router.route('/')
-  .get(getMyQuizzes)
-  .post(validateCreateQuiz, createQuiz);
+router.get('/', getMyQuizzes);
+router.post('/', validateCreateQuiz, createQuiz);
 
-router.route('/:quizId')
-  .get(getQuiz)
-  .patch(validateUpdateQuiz, updateQuiz)
-  .delete(deleteQuiz);
+router.get('/:quizId', getQuiz);
+router.patch('/:quizId', validateUpdateQuiz, updateQuiz);
+router.delete('/:quizId', deleteQuiz);
 
 router.post('/:quizId/duplicate', duplicateQuiz);
 
@@ -46,13 +44,11 @@ router.post('/:quizId/duplicate', duplicateQuiz);
 // otherwise Express matches "reorder" as a questionId param
 router.patch('/:quizId/questions/reorder', validateReorderQuestions, reorderQuestions);
 
-router.route('/:quizId/questions')
-  .get(getQuestions)
-  .post(validateCreateQuestion, createQuestion);
+router.get('/:quizId/questions', getQuestions);
+router.post('/:quizId/questions', validateCreateQuestion, createQuestion);
 
-router.route('/:quizId/questions/:questionId')
-  .get(getQuestion)
-  .patch(validateUpdateQuestion, updateQuestion)
-  .delete(deleteQuestion);
+router.get('/:quizId/questions/:questionId', getQuestion);
+router.patch('/:quizId/questions/:questionId', validateUpdateQuestion, updateQuestion);
+router.delete('/:quizId/questions/:questionId', deleteQuestion);
 
 module.exports = router;

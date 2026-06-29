@@ -1,26 +1,23 @@
 const Session = require('../models/Session');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const { parseCookie } = require('cookie');
 
 /**
  * Socket.io middleware — runs before 'connection' event.
  *
  * Expected handshake.auth:
- *   { sessionId, role: 'host' | 'participant', nickname?, token? }
+ *   { sessionId, role: 'host' | 'participant', nickname? }
  *
  * Hosts must supply a valid JWT token.
  * Participants only need sessionId + nickname.
  */
 const socketAuthMiddleware = async (socket, next) => {
-  const { sessionId, role, nickname, token: authToken } = socket.handshake.auth;
-  
-  // Get token from cookie or fallback to auth payload
-  let token = authToken;
+  const { sessionId, role, nickname } = socket.handshake.auth;
+
+  let token;
   if (socket.handshake.headers.cookie) {
-    const cookies = socket.handshake.headers.cookie.split(';').reduce((res, c) => {
-      const [key, val] = c.trim().split('=');
-      return { ...res, [key]: decodeURIComponent(val) };
-    }, {});
+    const cookies = parseCookie(socket.handshake.headers.cookie);
     if (cookies.token) token = cookies.token;
   }
 

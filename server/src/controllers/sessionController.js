@@ -74,7 +74,27 @@ const getSession = async (req, res) => {
     .sort({ totalScore: -1 })
     .select('nickname totalScore rank isConnected createdAt');
 
-  res.json({ success: true, session, participants });
+  let activeState = null;
+  if (session.status === 'active' && session.currentQuestionId) {
+    const totalQuestions = await Question.countDocuments({ quizId: session.quizId._id });
+    const answerCount = await Response.countDocuments({ 
+      sessionId: session._id, 
+      questionId: session.currentQuestionId._id 
+    });
+    
+    const timeLimit = session.currentQuestionId.timeLimit || session.quizId.defaultTimeLimit || 30;
+
+    activeState = {
+      question: session.currentQuestionId,
+      index: session.currentQuestionIndex,
+      total: totalQuestions,
+      timeLimit,
+      questionStartedAt: session.questionStartedAt,
+      answerCount,
+    };
+  }
+
+  res.json({ success: true, session, participants, activeState });
 };
 
 /**

@@ -43,9 +43,10 @@ const registerHostHandlers = (io, socket) => {
 
       await Session.findByIdAndUpdate(sessionId, {
         status: 'active',
-        currentQuestionIndex: 0,
-        currentQuestionId: firstQ._id,
         startedAt: new Date(),
+        currentQuestionId: firstQ._id,
+        currentQuestionIndex: 0,
+        questionStartedAt: new Date(),
       });
 
       // Notify everyone the quiz is starting
@@ -133,8 +134,9 @@ const registerHostHandlers = (io, socket) => {
       const effectiveTimeLimit = nextQ.timeLimit || session.quizId.defaultTimeLimit;
 
       await Session.findByIdAndUpdate(sessionId, {
-        currentQuestionIndex: nextIndex,
         currentQuestionId: nextQ._id,
+        currentQuestionIndex: nextIndex,
+        questionStartedAt: new Date(),
       });
 
       io.to(sessionId).emit('session:question', {
@@ -150,7 +152,7 @@ const registerHostHandlers = (io, socket) => {
   });
 
   // ── host:end ─────────────────────────────────────────────────
-  socket.on('host:end', async () => {
+  socket.on('host:end', async () => {//forced end if host wants to end before completing all que
     try {
       await Session.findByIdAndUpdate(sessionId, {
         status: 'ended',

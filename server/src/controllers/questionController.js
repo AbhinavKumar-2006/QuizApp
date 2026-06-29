@@ -46,11 +46,11 @@ const createQuestion = async (req, res) => {
 
   const { text, type, options, timeLimit, points, imageUrl } = req.body;
 
-  // Normalise options — ensure order field is set
+  // Normalise options — strictly enforce order based on array sequence
   const normalisedOptions = options.map((opt, idx) => ({
     text: opt.text.trim(),
     isCorrect: opt.isCorrect || false,
-    order: opt.order !== undefined ? opt.order : idx,
+    order: idx,
   }));
 
   const question = await Question.create({
@@ -80,12 +80,12 @@ const updateQuestion = async (req, res) => {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
   });
 
-  // Normalise options if present
+  // Normalise options if present — strictly enforce order based on array sequence
   if (updates.options) {
     updates.options = updates.options.map((opt, idx) => ({
       text: opt.text.trim(),
       isCorrect: opt.isCorrect || false,
-      order: opt.order !== undefined ? opt.order : idx,
+      order: idx,
     }));
   }
 

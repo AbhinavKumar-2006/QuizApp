@@ -39,6 +39,10 @@ const sessionSchema = new mongoose.Schema(
       type: Number,
       default: -1,
     },
+    questionStartedAt: {
+      type: Date,
+      default: null,
+    },
     startedAt: {
       type: Date,
       default: null,

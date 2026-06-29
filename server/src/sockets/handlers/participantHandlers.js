@@ -3,6 +3,7 @@ const Participant = require('../../models/Participant');
 const Question = require('../../models/Question');
 const Response = require('../../models/Response');
 const { calcScore } = require('../../utils/scoreCalc');
+const { stripCorrectAnswers } = require('../helpers');
 
 /**
  * Registers all participant-side socket events.
@@ -22,10 +23,9 @@ const registerParticipantHandlers = (io, socket) => {
   const { sessionId } = socket;
 
   // ── participant:join ──────────────────────────────────────────
-  socket.on('participant:join', async ({ nickname } = {}) => {
+  socket.on('participant:join', async () => {
     try {
-      const name = (nickname || socket.nickname || '').trim();
-      if (!name) return socket.emit('error', { message: 'nickname is required' });
+      const name = socket.nickname;
 
       const session = await Session.findById(sessionId);
       if (!session) return socket.emit('error', { message: 'Session not found' });
@@ -33,7 +33,7 @@ const registerParticipantHandlers = (io, socket) => {
       if (!['waiting', 'active'].includes(session.status)) {
         return socket.emit('error', { message: 'Session is no longer joinable' });
       }
-
+      //if user refreshes it get's new socket id
       // Upsert: handles reconnection gracefully
       let participant = await Participant.findOneAndUpdate(
         { sessionId, nickname: name },
@@ -60,6 +60,38 @@ const registerParticipantHandlers = (io, socket) => {
         .sort({ createdAt: 1 })
         .select('nickname isConnected totalScore');
       io.to(sessionId).emit('session:participants', { participants });
+
+      // If session is active, send current question to the reconnecting participant
+      if (session.status === 'active' && session.currentQuestionId) {
+        const currentQ = await Question.findById(session.currentQuestionId);
+        if (currentQ) {
+          const totalQuestions = await Question.countDocuments({ quizId: session.quizId });
+          const timeLimit = currentQ.timeLimit || 30;
+
+          socket.emit('session:question', {
+            question: stripCorrectAnswers(currentQ.toObject()),
+            index: session.currentQuestionIndex,
+            total: totalQuestions,
+            timeLimit,
+            questionStartedAt: session.questionStartedAt,
+          });
+
+          // Check if they already answered this question
+          const existingResponse = await Response.findOne({
+            sessionId,
+            participantId: participant._id,
+            questionId: currentQ._id
+          });
+
+          if (existingResponse) {
+            socket.emit('participant:answer_result', {
+              isCorrect: existingResponse.isCorrect,
+              score: existingResponse.score,
+              previouslySelected: existingResponse.selectedOptionId
+            });
+          }
+        }
+      }
     } catch (err) {
       if (err.code === 11000) {
         return socket.emit('error', { message: 'This nickname is already taken in this session' });
@@ -91,7 +123,8 @@ const registerParticipantHandlers = (io, socket) => {
       const question = await Question.findById(questionId);
       if (!question) return socket.emit('error', { message: 'Question not found' });
 
-      const selectedOption = question.options.id(selectedOptionId);
+      const selectedOption = question.options.find(opt => opt._id.toString() === selectedOptionId);
+
       if (!selectedOption) return socket.emit('error', { message: 'Invalid option' });
 
       const isCorrect = selectedOption.isCorrect;
